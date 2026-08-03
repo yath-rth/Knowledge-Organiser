@@ -36,21 +36,21 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
         mail.login(email_user, email_pass)
     except imaplib.IMAP4.error as e:
         print(f"Login failed. Ensure you are using an App Password if 2FA is on.")
-        return
+        return None
 
     # FIX: Select the Inbox before searching
     try:
         status, box = mail.select('INBOX') 
         if status != "OK":
             print("Failed to select Inbox.")
-            return
+            return None
     except Exception as e:
         print(f"Error selecting folder: {e}")
-        return
+        return None
 
     # Search for emails received in the last 24 hours
     now = datetime.now()
-    cutoff_time = (now - timedelta(hours=24)).strftime('%d-%b-%Y')
+    cutoff_time = (now - timedelta(hours=1)).strftime('%d-%b-%Y')
     
     search_query = f"SINCE {cutoff_time}" 
     
@@ -58,7 +58,7 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
 
     if status != "OK":
         print("Search failed.")
-        return
+        return None
 
     email_ids = messages[0].split()
 
@@ -66,9 +66,11 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
         print(f"No emails found in the last 24 hours for {email_user}.")
         mail.close()
         mail.logout()
-        return
+        return [] # Return empty list instead of exiting logic prematurely
 
-    print(f"Found {len(email_ids)} new emails. Processing...\n")
+    print(f"Found {len(email_ids)} new emails. Collecting data...\n")
+    
+    emails_data = []
 
     # Iterate through found emails
     for e_id in email_ids:
@@ -80,8 +82,8 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
         raw_email = msg_data[0][1]
         message = email.message_from_bytes(raw_email)
 
-        subject_raw = message.get('Subject')
-        from_raw = message.get('From')
+        subject_raw = message.get('Subject', 'No Subject')
+        from_raw = message.get('From', 'Unknown Sender')
 
         def decode_mail_header(header):
             try:
@@ -105,11 +107,9 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
         subject = decode_mail_header(subject_raw)
         sender = decode_mail_header(from_raw)
 
-        print(f"--- New Email ---")
-        print(f"From: {sender}")
-        print(f"Subject: {subject}\n")
+        # Extract body text to include in the data payload
+        body_text = ""
         
-        # Optional: Print body snippet
         if message.is_multipart():
             for part in message.walk():
                 content_type = part.get_content_type()
@@ -117,25 +117,55 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
                 
                 if content_type == "text/plain" and "attachment" not in content_disposition:
                     try:
-                        body = part.get_payload(decode=True).decode('utf-8', errors='ignore')
-                        # print(body[:500])  # Uncomment to see first 500 chars of body
+                        body_bytes = part.get_payload(decode=True)
+                        # Decode bytes to string, limit length for context window safety
+                        if isinstance(body_bytes, bytes):
+                            body_text = body_bytes.decode('utf-8', errors='ignore')[:2000] 
+                        else:
+                            body_text = str(body_bytes)[:2000]
                         break
                     except Exception as e:
-                        print(f"Error reading body: {e}")
+                        print(f"Error reading body for {subject}: {e}")
         else:
             content_type = message.get_content_type()
             if content_type == "text/plain":
                 try:
-                    body = message.get_payload().decode('utf-8', errors='ignore')
-                    # print(body[:500])  # Uncomment to see first 500 chars of body
+                    payload = message.get_payload()
+                    # Decode bytes to string, limit length
+                    if isinstance(payload, bytes):
+                        body_text = payload.decode('utf-8', errors='ignore')[:2000]
+                    else:
+                        body_text = str(payload)[:2000]
                 except Exception as e:
-                    print(f"Error reading body: {e}")
+                    print(f"Error reading body for {subject}: {e}")
 
-    print("Done!")
+        # Append structured data to the list
+        emails_data.append({
+            "id": e_id,
+            "sender": sender,
+            "subject": subject,
+            "body_preview": body_text
+        })
+
+    print("Data collection complete.")
     
     mail.close()
     mail.logout()
+    
+    return emails_data # Return the list of dictionaries
+    
+def main():
+    creds = load_env()
+    if creds:
+        email_user, email_pass, server, port = creds
+        data = get_emails_from_last_24h(email_user, email_pass, server, port)
+        if data and len(data) > 0:
+            print(f"Successfully fetched {len(data)} emails.")
+            # Optional: Print a summary for the user to see it worked before sending to LLM
+            for i, em in enumerate(data):
+                print(f"{i+1}. From: {em['sender']} - Subject: {em['subject']}")
+        else:
+            print("No emails returned.")
 
 if __name__ == "__main__":
-    print("Fetching emails from the last 24 hours...")
-    get_emails_from_last_24h(EMAIL_USER, EMAIL_PASS)
+    main()

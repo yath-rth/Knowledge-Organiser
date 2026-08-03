@@ -1,2 +1,4 @@
 _pycache_
 .env
+service_account.json
+*.json
