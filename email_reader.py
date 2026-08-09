@@ -1,11 +1,54 @@
 import imaplib
 import os
 import sys
+import pandas as pd
 import email
 from datetime import datetime, timedelta
 from email.header import decode_header
 
-# Load environment variables from .env file
+def is_excel_file(filename):
+    if not filename:
+        return False
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in (".xlsx", ".xls", ".xlsm")
+
+
+def parse_excel_attachment(payload_bytes, filename, rows_per_chunk=200):
+    """
+    Reads an Excel attachment and returns a list of text chunks,
+    each containing up to `rows_per_chunk` rows, so large sheets
+    (e.g. 1800-row shortlists) don't get silently truncated.
+    """
+    import io
+
+    try:
+        excel_file = pd.ExcelFile(io.BytesIO(payload_bytes))
+        chunks = []
+
+        for sheet_name in excel_file.sheet_names:
+            df = excel_file.parse(sheet_name)
+            df = df.dropna(how="all").dropna(axis=1, how="all")
+
+            if df.empty:
+                continue
+
+            total_rows = len(df)
+            for start in range(0, total_rows, rows_per_chunk):
+                chunk_df = df.iloc[start:start + rows_per_chunk]
+                header = (
+                    f"--- Sheet: {sheet_name} "
+                    f"(rows {start + 1}-{min(start + rows_per_chunk, total_rows)} of {total_rows}) ---"
+                )
+                chunks.append(f"{header}\n{chunk_df.to_string(index=False)}")
+
+        if not chunks:
+            return [f"(Excel file '{filename}' was empty or unreadable)"]
+
+        return chunks
+
+    except Exception as e:
+        return [f"(Error parsing Excel file '{filename}': {e})"]
+
 def load_env():
     try:
         # Check if python-dotenv is installed
@@ -50,7 +93,7 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
 
     # Search for emails received in the last 24 hours
     now = datetime.now()
-    cutoff_time = (now - timedelta(hours=1)).strftime('%d-%b-%Y')
+    cutoff_time = (now - timedelta(hours=24)).strftime('%d-%b-%Y')
     
     search_query = f"SINCE {cutoff_time}" 
     
@@ -109,29 +152,48 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
 
         # Extract body text to include in the data payload
         body_text = ""
-        
+        attachment_chunks = []  # list of {"filename": ..., "chunks": [...]}
+        attachment_names = []
+
         if message.is_multipart():
             for part in message.walk():
                 content_type = part.get_content_type()
                 content_disposition = str(part.get_content_disposition())
-                
+
                 if content_type == "text/plain" and "attachment" not in content_disposition:
                     try:
                         body_bytes = part.get_payload(decode=True)
-                        # Decode bytes to string, limit length for context window safety
                         if isinstance(body_bytes, bytes):
-                            body_text = body_bytes.decode('utf-8', errors='ignore')[:2000] 
+                            body_text = body_bytes.decode('utf-8', errors='ignore')[:2000]
                         else:
                             body_text = str(body_bytes)[:2000]
-                        break
                     except Exception as e:
                         print(f"Error reading body for {subject}: {e}")
+                    continue
+
+                filename = part.get_filename()
+                if filename:
+                    decoded_filename = decode_mail_header(filename)
+                    attachment_names.append(decoded_filename)
+
+                    if is_excel_file(decoded_filename):
+                        try:
+                            payload = part.get_payload(decode=True)
+                            if payload:
+                                chunks = parse_excel_attachment(payload, decoded_filename)
+                                attachment_chunks.append({
+                                    "filename": decoded_filename,
+                                    "chunks": chunks,
+                                })
+                                print(f"  -> Parsed Excel attachment: {decoded_filename} "
+                                      f"({len(chunks)} chunk(s))")
+                        except Exception as e:
+                            print(f"  Error parsing attachment {decoded_filename}: {e}")
         else:
             content_type = message.get_content_type()
             if content_type == "text/plain":
                 try:
                     payload = message.get_payload()
-                    # Decode bytes to string, limit length
                     if isinstance(payload, bytes):
                         body_text = payload.decode('utf-8', errors='ignore')[:2000]
                     else:
@@ -141,10 +203,12 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
 
         # Append structured data to the list
         emails_data.append({
-            "id": e_id,
+            "id": e_id.decode(),
             "sender": sender,
             "subject": subject,
-            "body_preview": body_text
+            "body_preview": body_text,
+            "attachment_names": attachment_names,
+            "attachment_chunks": attachment_chunks,  # list of {filename, chunks}
         })
 
     print("Data collection complete.")
