@@ -82,6 +82,25 @@ Do not invent information you cannot see in the data.
         print(f"    Context summary failed: {e}")
         return "Match found, but could not summarize context."
 
+def normalize_summary(summary_text):
+    """
+    Ensures summary is bullet-formatted even if the LLM didn't comply.
+    If it already looks bulleted, leave it. Otherwise, split on
+    sentence boundaries and force bullets.
+    """
+    if not summary_text:
+        return summary_text
+
+    lines = [l.strip() for l in summary_text.split("\n") if l.strip()]
+
+    # Already bulleted properly
+    if len(lines) > 1 and all(l.startswith("-") for l in lines):
+        return "\n".join(lines)
+
+    # Fallback: split the blob into sentences and bullet them
+    sentences = re.split(r'(?<=[.!?])\s+', summary_text.strip())
+    sentences = [s.strip() for s in sentences if s.strip()]
+    return "\n".join(f"- {s}" for s in sentences)
 
 def process_attachments(email_item):
     """
@@ -144,11 +163,12 @@ Return ONLY a valid JSON object with these EXACT keys:
 Rules:
 
 - Return ONLY JSON. No markdown. No explanations.
-- The "summary" MUST be formatted as short bullet points, not a paragraph.
-- Use "\n- " to separate each point (so it renders as a bulleted list).
-- Each point should be a single short, specific fact or action — no filler sentences.
-- Aim for 2-4 points total. Do not merge multiple ideas into one point.
-- The "title" should be a short human-readable title.
+- The "summary" MUST be a bulleted list, never a paragraph.
+- Format: each point starts with "- " and is a single, tight sentence — no labels like "What:" or "Action:", just the fact itself.
+- 2-4 points max. Merge related info (e.g. a deadline and its consequence) into ONE point instead of two.
+- Order: what it is → what's at stake / deadline → what to do, when, where.
+- If attachment findings confirm the student's name/regno appears, state that as its own short point (e.g. "Your regno 24BBB1234 is on the shortlist.") - don't just say "the student is included."
+- Do not restate the same fact twice across different points.
 - If a field is unavailable, return null.
 - Preserve dates, times and locations exactly as mentioned.
 - Do not invent information.
@@ -259,6 +279,7 @@ The "summary" should cover these as separate bullet points (skip any that don't 
         clean_json_str = re.sub(r'\s*```$', '', clean_json_str, flags=re.MULTILINE).strip()
 
         parsed_data = json.loads(clean_json_str)
+        # parsed_data["summary"] = normalize_summary(parsed_data.get("summary") or "")
 
         return {
             "gmail_id": email_item["id"],
