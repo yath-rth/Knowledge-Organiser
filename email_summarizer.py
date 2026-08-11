@@ -14,7 +14,7 @@ load_dotenv()
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 DB_ID = os.getenv("DB_ID")
-LM_STUDIO_URL = "http://localhost:1234"
+LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234")
 LM_MODEL_NAME = os.getenv("LM_MODEL_NAME")
 FIREBASE_CREDENTIAL_PATH = os.getenv("SERVICE_ACCOUNT_PATH", "service_account.json")
 STUDENT_NAMES = [n.strip() for n in os.getenv("STUDENT_NAME", "").split(",") if n.strip()]
