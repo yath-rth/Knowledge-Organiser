@@ -282,7 +282,7 @@ The "summary" should cover these as separate bullet points (skip any that don't 
         # parsed_data["summary"] = normalize_summary(parsed_data.get("summary") or "")
 
         return {
-            "gmail_id": email_item["id"],
+            "gmail_id": int(email_item["id"]),
             "type": parsed_data.get("type"),
             "title": parsed_data.get("title"),
             "date": parsed_data.get("date"),
@@ -308,6 +308,27 @@ The "summary" should cover these as separate bullet points (skip any that don't 
         return None
     except Exception as e:
         print(f"  ERROR processing email: {e}")
+        return None
+
+def get_from_firebase(count):
+    try:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
+            initialize_app(cred)
+
+        db = firestore.client()
+
+        docs = (
+            db.collection("emails")
+            .order_by("gmail_id", direction=firestore.Query.DESCENDING)
+            .limit(count)
+            .stream()
+        )
+
+        return [doc.to_dict() for doc in docs]
+
+    except Exception as e:
+        print(f"Firebase error: {e}")
         return None
 
 def save_to_firebase(data_list):
@@ -371,13 +392,18 @@ def main():
         print("No new emails found.")
         sys.exit(1)
 
+    existing_ids = [email["gmail_id"] for email in get_from_firebase(len(emails))]    
     final_output_list = []
     errors_count = 0
 
     for i, email_item in enumerate(emails):
         print(f"\n[{i + 1}/{len(emails)}] Analyzing: {email_item['subject']}")
 
-        result = classify_email(email_item)
+        if(email_item["id"] in existing_ids):
+            print("Email already stored")
+            continue
+        
+        result = classify_email(email_item) 
 
         if result:
             final_output_list.append(result)
