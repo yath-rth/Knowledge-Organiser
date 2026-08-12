@@ -386,10 +386,36 @@ def chunk_contains_student(chunk_text):
 
     return None
 
+def update_state(state):
+    timestamp = firestore.SERVER_TIMESTAMP
+    
+    item = {
+        "state": state,
+        "timestamp": timestamp
+    }
+    
+    try:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
+            initialize_app(cred)
+
+        db = firestore.client()
+        doc_id = datetime.now().isoformat()
+        try:
+            db.collection("heart_beat").document(doc_id).set(item)
+        except Exception as e:
+            print(f"  Failed to save doc {doc_id}: {e}")
+    
+    except Exception as e:
+        print(f"\nCRITICAL ERROR connecting to Firebase: {e}")
+    
+
 def main():    
+    update_state("fetching")
     emails = get_emails_from_last_24h(EMAIL_USER, EMAIL_PASS)
     if not emails:
         print("No new emails found.")
+        update_state("exit")
         sys.exit(1)
 
     existing_ids = [email["gmail_id"] for email in get_from_firebase(len(emails))]    
@@ -426,6 +452,7 @@ def main():
 
     # Save to Firebase
     save_to_firebase(final_output_list)
+    update_state("updated")
 
 
 if __name__ == "__main__":
