@@ -203,16 +203,13 @@ HIGH:
 - Exams
 - Fee payment deadlines
 - Registration deadlines
-- Scholarship opportunities
 
-MEDIUM:
+LOW:
 - Technical talks
 - Workshops
 - Research opportunities
 - Exchange programs
 - Club events the student may be interested in
-
-LOW:
 - General announcements
 - Celebrations
 - Congratulations
@@ -383,13 +380,11 @@ def chunk_contains_student(chunk_text):
     """
     chunk_lower = chunk_text.lower()
 
-    for regno in STUDENT_REGNO:
-        if regno.lower() in chunk_lower:
-            return regno
+    if STUDENT_REGNO.lower() in chunk_lower:
+        return STUDENT_REGNO
 
-    for name in STUDENT_NAME:
-        if name.lower() in chunk_lower:
-            return name
+    if STUDENT_NAME.lower() in chunk_lower:
+        return STUDENT_NAME
 
     return None
 
