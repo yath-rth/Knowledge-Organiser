@@ -163,6 +163,7 @@ Return ONLY a valid JSON object with these EXACT keys:
 
 Rules:
 
+- Title should be a short and concise based on the contents of the email
 - Return ONLY JSON. No markdown. No explanations.
 - The "summary" MUST be a bulleted list, never a paragraph.
 - Format: each point starts with "- " and is a single, tight sentence — no labels like "What:" or "Action:", just the fact itself.
@@ -233,8 +234,8 @@ The "summary" should cover these as separate bullet points (skip any that don't 
             "content": (
                 f"Email Details:\nFrom: {email_item['sender']}\n"
                 f"Subject: {email_item['subject']}\n"
-                # f"Name: {STUDENT_NAME}\n"
-                # f"Registration Number: {STUDENT_REGNO}\n"
+                f"Name: {STUDENT_NAME}\n"
+                f"Registration Number: {STUDENT_REGNO}\n"
                 f"Body: {email_item['body_preview']}\n"
                 f"Attachments: {', '.join(email_item.get('attachment_names', [])) or 'None'}\n"
                 f"Relevant findings from attachments:\n{attachment_summary or 'None found'}\n\n"
@@ -245,17 +246,15 @@ The "summary" should cover these as separate bullet points (skip any that don't 
         },
     ]
 
-    final_model_name = LM_MODEL_NAME if LM_MODEL_NAME else ""
-
     endpoint = f"{LM_STUDIO_URL}/v1/chat/completions"
 
     headers = {"Content-Type": "application/json"}
 
     payload = {
-        "model": final_model_name,
+        "model": LM_MODEL_NAME,
         "messages": messages,
         "reasoning_effort": "none",
-        # "temperature": 0.2,
+        "temperature": 0.3,
         "max_tokens": 1500,
     }
 
@@ -348,13 +347,12 @@ def save_to_firebase(data_list):
             cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
             initialize_app(cred)
 
-        db = firestore.client()  # FIXED: was firebase_admin.firestore()
+        db = firestore.client()
 
         print(f"\nSaving {len(data_list)} emails to Firestore...")
 
         saved_count = 0
         for i, item in enumerate(data_list):
-            # FIXED: datetime.datetime.now() -> datetime.now() (datetime already imported directly)
             doc_id = item["gmail_id"]
 
             try:
@@ -406,7 +404,7 @@ def update_state(state):
         try:
             db.collection("heart_beat").document(doc_id).set(item)
         except Exception as e:
-            print(f"  Failed to save doc {doc_id}: {e}")
+            print(f"Failed to save doc {doc_id}: {e}")
     
     except Exception as e:
         print(f"\nCRITICAL ERROR connecting to Firebase: {e}")
@@ -417,7 +415,7 @@ def main():
     emails = get_emails_from_last_24h(EMAIL_USER, EMAIL_PASS)
     if not emails:
         print("No new emails found.")
-        update_state("exit")
+        update_state("No new emails")
         sys.exit(1)
 
     existing_ids = [str(email["gmail_id"]) for email in get_from_firebase(len(emails))]    
@@ -427,9 +425,9 @@ def main():
     for i, email_item in enumerate(emails):
         print(f"\n[{i + 1}/{len(emails)}] Analyzing: {email_item['subject']}")
 
-        # if(str(email_item["id"]) in existing_ids):
-        #     print("Email already stored")
-        #     continue
+        if(str(email_item["id"]) in existing_ids):
+            print("Email already stored")
+            continue
         
         result = classify_email(email_item) 
 
@@ -440,21 +438,11 @@ def main():
         else:
             errors_count += 1
 
-    # # Output to console (optional, for debugging)
-    # if final_output_list:
-    #     print("\n" + "=" * 50)
-    #     print(f"FINAL OUTPUT ({len(final_output_list)} items):")
-    #     print("=" * 50)
-    #     with open("extracted_emails_debug.json", "w") as f:
-    #         json.dump(final_output_list, f, indent=2)
-    #     print("Debug dump saved to 'extracted_emails_debug.json'")
-
     if errors_count:
         print(f"\n{errors_count} email(s) failed to process.")
 
-    # Save to Firebase
     save_to_firebase(final_output_list)
-    update_state("updated")
+    update_state(f"updated with {errors_count} errors")
 
 
 if __name__ == "__main__":
