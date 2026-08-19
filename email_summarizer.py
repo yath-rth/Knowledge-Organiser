@@ -17,8 +17,8 @@ DB_ID = os.getenv("DB_ID")
 LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234")
 LM_MODEL_NAME = os.getenv("LM_MODEL_NAME")
 FIREBASE_CREDENTIAL_PATH = os.getenv("SERVICE_ACCOUNT_PATH", "service_account.json")
-STUDENT_NAMES = [n.strip() for n in os.getenv("STUDENT_NAME", "").split(",") if n.strip()]
-STUDENT_REGNOS = [r.strip() for r in os.getenv("STUDENT_REGNO", "").split(",") if r.strip()]
+STUDENT_NAME = os.getenv("STUDENT_NAME")
+STUDENT_REGNO = os.getenv("STUDENT_REGNO")
 
 def summarize_excel_match(email_item, filename, chunk_text, matched_term, chunk_index, total_chunks):
     """
@@ -55,9 +55,10 @@ Do not invent information you cannot see in the data.
     ]
 
     payload = {
-        "model": LM_MODEL_NAME or "",
+        "model": LM_MODEL_NAME,
         "messages": messages,
-        "temperature": 0.1,
+        "reasoning_effort": "none",
+        "temperature": 0.2,
         "max_tokens": 300,
     }
 
@@ -167,7 +168,8 @@ Rules:
 - Format: each point starts with "- " and is a single, tight sentence — no labels like "What:" or "Action:", just the fact itself.
 - 2-4 points max. Merge related info (e.g. a deadline and its consequence) into ONE point instead of two.
 - Order: what it is → what's at stake / deadline → what to do, when, where.
-- If attachment findings confirm the student's name/regno appears, state that as its own short point (e.g. "Your regno 24BBB1234 is on the shortlist.") - don't just say "the student is included."
+- If attachment findings confirm the student's name/regno appears, state that as its own short point (e.g. "Your regno 24BCE0825 is on the shortlist."). Do not mention if you don't find the exact name and registration number
+- don't just say "the student is included."
 - Do not restate the same fact twice across different points.
 - If a field is unavailable, return null.
 - Preserve dates, times and locations exactly as mentioned.
@@ -234,6 +236,8 @@ The "summary" should cover these as separate bullet points (skip any that don't 
             "content": (
                 f"Email Details:\nFrom: {email_item['sender']}\n"
                 f"Subject: {email_item['subject']}\n"
+                # f"Name: {STUDENT_NAME}\n"
+                # f"Registration Number: {STUDENT_REGNO}\n"
                 f"Body: {email_item['body_preview']}\n"
                 f"Attachments: {', '.join(email_item.get('attachment_names', [])) or 'None'}\n"
                 f"Relevant findings from attachments:\n{attachment_summary or 'None found'}\n\n"
@@ -253,14 +257,17 @@ The "summary" should cover these as separate bullet points (skip any that don't 
     payload = {
         "model": final_model_name,
         "messages": messages,
-        "temperature": 0.2,
-        "max_tokens": 2500,
+        "reasoning_effort": "none",
+        # "temperature": 0.2,
+        "max_tokens": 1500,
     }
 
     print(f"Processing: {email_item['subject']}...")
 
     try:
         response = requests.post(endpoint, headers=headers, json=payload, timeout=180)
+
+        print(response.text)
 
         if response.status_code != 200:
             print(f"  Error from server ({response.status_code}): {response.text[:200]}")
@@ -354,7 +361,7 @@ def save_to_firebase(data_list):
             doc_id = item["gmail_id"]
 
             try:
-                db.collection("emails").document(doc_id).set(item)
+                db.collection("emails").document(str(doc_id)).set(item)
                 item_type = item.get("type") or "Unknown"
                 print(f"  Saved: {item_type[:20]}...")
                 saved_count += 1
@@ -376,11 +383,11 @@ def chunk_contains_student(chunk_text):
     """
     chunk_lower = chunk_text.lower()
 
-    for regno in STUDENT_REGNOS:
+    for regno in STUDENT_REGNO:
         if regno.lower() in chunk_lower:
             return regno
 
-    for name in STUDENT_NAMES:
+    for name in STUDENT_NAME:
         if name.lower() in chunk_lower:
             return name
 
@@ -418,16 +425,16 @@ def main():
         update_state("exit")
         sys.exit(1)
 
-    existing_ids = [email["gmail_id"] for email in get_from_firebase(len(emails))]    
+    existing_ids = [str(email["gmail_id"]) for email in get_from_firebase(len(emails))]    
     final_output_list = []
     errors_count = 0
 
     for i, email_item in enumerate(emails):
         print(f"\n[{i + 1}/{len(emails)}] Analyzing: {email_item['subject']}")
 
-        if(email_item["id"] in existing_ids):
-            print("Email already stored")
-            continue
+        # if(str(email_item["id"]) in existing_ids):
+        #     print("Email already stored")
+        #     continue
         
         result = classify_email(email_item) 
 
