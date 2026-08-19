@@ -71,6 +71,7 @@ Do not invent information you cannot see in the data.
         )
         if response.status_code != 200:
             print(f"    Context summary error: {response.status_code}")
+            update_state("context summary API error")
             return "Match found, but could not summarize context."
 
         content = response.json()["choices"][0]["message"]["content"]
@@ -263,10 +264,9 @@ The "summary" should cover these as separate bullet points (skip any that don't 
     try:
         response = requests.post(endpoint, headers=headers, json=payload, timeout=180)
 
-        print(response.text)
-
         if response.status_code != 200:
             print(f"  Error from server ({response.status_code}): {response.text[:200]}")
+            update_state("classify_email API error")
             return None
 
         response_json = response.json()
@@ -274,6 +274,7 @@ The "summary" should cover these as separate bullet points (skip any that don't 
         choices = response_json.get("choices")
         if not choices:
             print("  ERROR: No 'choices' in LM Studio response.")
+            update_state("classify_email missing choices")
             return None
 
         llm_response_text = choices[0]["message"]["content"]
@@ -302,15 +303,19 @@ The "summary" should cover these as separate bullet points (skip any that don't 
 
     except json.JSONDecodeError:
         print("  WARNING: LLM returned invalid JSON. Skipping this email.")
+        update_state("classify_email invalid JSON")
         return None
     except (KeyError, IndexError) as e:
         print(f"  ERROR: Unexpected response structure from LM Studio: {e}")
+        update_state("classify_email unexpected response structure")
         return None
     except requests.exceptions.RequestException as e:
         print(f"  ERROR: Request to LM Studio failed: {e}")
+        update_state("classify_email request failure")
         return None
     except Exception as e:
         print(f"  ERROR processing email: {e}")
+        update_state("classify_email unexpected error")
         return None
 
 def get_from_firebase(count):
@@ -332,6 +337,7 @@ def get_from_firebase(count):
 
     except Exception as e:
         print(f"Firebase error: {e}")
+        update_state("get_from_firebase failed")
         return None
 
 def save_to_firebase(data_list):
@@ -362,12 +368,14 @@ def save_to_firebase(data_list):
                 saved_count += 1
             except Exception as e:
                 print(f"  Failed to save doc {doc_id}: {e}")
+                update_state(f"save_to_firebase failed for doc {doc_id}")
 
         print(f"\nSuccessfully synced {saved_count}/{len(data_list)} emails to Firebase!")
         return saved_count > 0
 
     except Exception as e:
         print(f"\nCRITICAL ERROR connecting to Firebase: {e}")
+        update_state("save_to_firebase critical error")
         return False
 
 def chunk_contains_student(chunk_text):
@@ -427,6 +435,7 @@ def main():
 
         if(str(email_item["id"]) in existing_ids):
             print("Email already stored")
+            update_state("skipped duplicate email")
             continue
         
         result = classify_email(email_item) 
@@ -440,9 +449,16 @@ def main():
 
     if errors_count:
         print(f"\n{errors_count} email(s) failed to process.")
+    
+    save_success = save_to_firebase(final_output_list)
+    
+    if not save_success:
+        update_state("firebase save failed")
+    elif errors_count > 0:
+        update_state(f"updated with {errors_count} processing errors")
+    else:
+        update_state("successfully updated without errors")
 
-    save_to_firebase(final_output_list)
-    update_state(f"updated with {errors_count} errors")
 
 
 if __name__ == "__main__":
