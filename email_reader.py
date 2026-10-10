@@ -176,19 +176,19 @@ def get_emails_from_last_24h(email_user, email_pass, server="imap.gmail.com", po
                     decoded_filename = decode_mail_header(filename)
                     attachment_names.append(decoded_filename)
 
-                    if is_excel_file(decoded_filename):
-                        try:
-                            payload = part.get_payload(decode=True)
-                            if payload:
-                                chunks = parse_excel_attachment(payload, decoded_filename)
-                                attachment_chunks.append({
-                                    "filename": decoded_filename,
-                                    "chunks": chunks,
-                                })
-                                print(f"  -> Parsed Excel attachment: {decoded_filename} "
-                                      f"({len(chunks)} chunk(s))")
-                        except Exception as e:
-                            print(f"  Error parsing attachment {decoded_filename}: {e}")
+                    # if is_excel_file(decoded_filename):
+                    #     try:
+                    #         payload = part.get_payload(decode=True)
+                    #         if payload:
+                    #             chunks = parse_excel_attachment(payload, decoded_filename)
+                    #             attachment_chunks.append({
+                    #                 "filename": decoded_filename,
+                    #                 "chunks": chunks,
+                    #             })
+                    #             print(f"  -> Parsed Excel attachment: {decoded_filename} "
+                    #                   f"({len(chunks)} chunk(s))")
+                    #     except Exception as e:
+                    #         print(f"  Error parsing attachment {decoded_filename}: {e}")
         else:
             content_type = message.get_content_type()
             if content_type == "text/plain":
