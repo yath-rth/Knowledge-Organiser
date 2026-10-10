@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Model Comparison Report</title>
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --primary: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 32px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+
+        .legend-container {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .legend-label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .legend-item {
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .stat-card h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 12px;
+        }
+
+        .stat-val {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: var(--text-main);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .latency-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .latency-card h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 16px;
+        }
+
+        .latency-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .latency-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .section-header {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-view-sec {
+            margin-top: 50px;
+        }
+
+        /* Table Design */
+        .table-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            margin-bottom: 40px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th, td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: #f8fafc;
+        }
+
+        .table-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .table-sender {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .cell-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .cell-fail {
+            color: var(--danger);
+            background-color: var(--danger-light);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .badge-high {
+            background-color: var(--danger-light);
+            color: var(--danger);
+        }
+
+        .badge-low {
+            background-color: #f1f5f9;
+            color: #475569;
+        }
+
+        /* Details Blocks */
+        .detail-block {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+
+        .detail-email-header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+
+        .detail-email-header h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .detail-sender {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .model-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            align-items: start;
+        }
+
+        .model-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-model-name {
+            padding: 10px 16px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-body {
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .card-main-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--text-main);
+            line-height: 1.3;
+        }
+
+        .card-badges-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .fields-table {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: white;
+            overflow: hidden;
+        }
+
+        .field-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+
+        .field-item:last-child {
+            border-bottom: none;
+        }
+
+        .field-label {
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .field-val {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .summary-box {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px 14px;
+        }
+
+        .summary-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.025em;
+            margin-bottom: 8px;
+        }
+
+        .bullet-list {
+            list-style-position: outside;
+            padding-left: 18px;
+            font-size: 0.85rem;
+            color: #334155;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .error-box {
+            background-color: var(--danger-light);
+            border: 1px solid #fca5a5;
+            border-radius: 6px;
+            padding: 12px;
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .text-muted { color: var(--text-muted); }
+        .italic { font-style: italic; }
+        .mt-4 { margin-top: 16px; }
+        .p-4 { padding: 16px; }
+
+        footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 60px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 24px;
+        }
+
+        @media(max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📧 Email Classification Model Comparison</h1>
+            <p>Evaluating and benchmarking the latest email summaries across LLMs</p>
+            <div class="legend-container">
+                <span class="legend-label">Models:</span>
+                
+        <span class="legend-item" style="border-left: 4px solid #6366f1; background: #e0e7ff; color: #3730a3;">
+            qwen3.5-9b
+        </span>
+        
+        <span class="legend-item" style="border-left: 4px solid #f97316; background: #ffedd5; color: #9a3412;">
+            nvidia/nemotron-3-nano-4b
+        </span>
+        
+        <span class="legend-item" style="border-left: 4px solid #10b981; background: #d1fae5; color: #065f46;">
+            qwen2.5-0.5b
+        </span>
+        
+        <span class="legend-item" style="border-left: 4px solid #8b5cf6; background: #ede9fe; color: #5b21b6;">
+            minicpm5-1b
+        </span>
+        
+            </div>
+        </header>
+
+        <section class="dashboard">
+            <div class="stats-grid">
+                
+    <div class="stat-card">
+        <h3>Total Emails</h3>
+        <div class="stat-val">5</div>
+        <div class="stat-desc">Distinct items evaluated</div>
+    </div>
+    <div class="stat-card">
+        <h3>Models Compared</h3>
+        <div class="stat-val">4</div>
+        <div class="stat-desc">Active LLM configurations</div>
+    </div>
+    <div class="stat-card">
+        <h3>Consensus Rate</h3>
+        <div class="stat-val">0.0%</div>
+        <div class="stat-desc">Complete type & priority agreement</div>
+    </div>
+    <div class="stat-card">
+        <h3>Errors / Failures</h3>
+        <div class="stat-val" style="color: #ef4444;">5</div>
+        <div class="stat-desc">API or format parsing faults</div>
+    </div>
+    
+            </div>
+            <div class="latency-card">
+                <h3>Avg Latency</h3>
+                <div>
+                    
+        <div class="latency-row">
+            <span class="latency-model" style="color: #6366f1; font-weight: 600;">qwen3.5-9b</span>
+            <span class="latency-val">19.27s avg</span>
+        </div>
+        
+        <div class="latency-row">
+            <span class="latency-model" style="color: #f97316; font-weight: 600;">nvidia/nemotron-3-nano-4b</span>
+            <span class="latency-val">13.43s avg</span>
+        </div>
+        
+        <div class="latency-row">
+            <span class="latency-model" style="color: #10b981; font-weight: 600;">qwen2.5-0.5b</span>
+            <span class="latency-val">3.21s avg</span>
+        </div>
+        
+        <div class="latency-row">
+            <span class="latency-model" style="color: #8b5cf6; font-weight: 600;">minicpm5-1b</span>
+            <span class="latency-val">2.50s avg</span>
+        </div>
+        
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="section-header">
+                <span>📊</span> Quick Comparison Grid
+            </div>
+            <div class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Email Subject</th><th style="background: #e0e7ff; color: #3730a3; border-bottom: 2px solid #6366f1;">qwen3.5-9b</th><th style="background: #ffedd5; color: #9a3412; border-bottom: 2px solid #f97316;">nvidia/nemotron-3-nano-4b</th><th style="background: #d1fae5; color: #065f46; border-bottom: 2px solid #10b981;">qwen2.5-0.5b</th><th style="background: #ede9fe; color: #5b21b6; border-bottom: 2px solid #8b5cf6;">minicpm5-1b</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><div class="table-sub">#5632</div><strong>Re: American Express - VIT || Internship - Applications Lines -
+ Deadline : Friday, 21st Aug, 2:00pm</strong><div class="table-sender">From: &quot;&#x27;No Reply CDC Info&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div></td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Internship</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">American Express Internship Application Deadline</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Internship</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">American Express Internship Application Deadline</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">No title</div>
+                </td>
+                <td class="text-muted italic">No data</td></tr><tr><td><div class="table-sub">#5631</div><strong>Invitation: University Southern California, USA- Webinar - Careers at
+ the Intersection of GIS, Data Science, and AI | 2nd Sept &#x27;2026 - 7.30 PM IST</strong><div class="table-sender">From: &quot;&#x27;Dr.R.Seenivasan Director (IR)&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div></td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Talk</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">Invitation to USC Webinar on GIS, Data Science, and AI Careers</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">GIS Data Science AI Webinar Invitation</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">No title</div>
+                </td>
+                <td class="text-muted italic">No data</td></tr><tr><td><div class="table-sub">#5630</div><strong>Security alert</strong><div class="table-sender">From: Google &lt;no-reply@accounts.google.com&gt;</div></td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Security Alert</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">New Sign-in on Windows Device</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Security Alert</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">Google security alert</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">No title</div>
+                </td>
+                <td class="text-muted italic">No data</td></tr><tr><td><div class="table-sub">#5629</div><strong>Day 5: &quot;Beyond the Frame&quot; - Photography Competition</strong><div class="table-sender">From: &quot;&#x27;Director Student Welfare&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div></td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Workshop</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">Beyond the Frame Photography Competition Day 5</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Assignment</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">Beyond the Frame Photo Contest</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">No title</div>
+                </td>
+                <td class="text-muted italic">No data</td></tr><tr><td><div class="table-sub">#5628</div><strong>Fwd: Ecosystem Collaboration: Funding Opportunity for Energy Startups via mc²+ IGNITE</strong><div class="table-sender">From: &quot;&#x27;Director VIT Innovation&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div></td>
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Announcement</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">Funding Opportunity for Energy Startups via mc²+ IGNITE</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Announcement</div>
+                    <span class="badge badge-high">HIGH</span>
+                    <div class="cell-title">Energy Startup Funding Opportunity</div>
+                </td>
+                
+                <td>
+                    <div style="font-weight: 600; margin-bottom: 4px;">Other</div>
+                    <span class="badge badge-low">LOW</span>
+                    <div class="cell-title">No title</div>
+                </td>
+                <td class="text-muted italic">No data</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card-view-sec">
+            <div class="section-header">
+                <span>🔍</span> Detailed Side-By-Side Extraction
+            </div>
+            
+        <div class="detail-block">
+            <div class="detail-email-header">
+                <h2>Email #5632: Re: American Express - VIT || Internship - Applications Lines -
+ Deadline : Friday, 21st Aug, 2:00pm</h2>
+                <div class="detail-sender">Sender: &quot;&#x27;No Reply CDC Info&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div>
+            </div>
+            <div class="model-cards-grid">
+        
+                <div class="model-card" style="border-top: 4px solid #6366f1;">
+                    <div class="card-model-name" style="background: #e0e7ff; color: #3730a3;">
+                        qwen3.5-9b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">American Express Internship Application Deadline</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3;">Internship</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">Friday, 21st Aug</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">2:00pm</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>American Express applied students must fill out the campus application form.</li><li>The application deadline is Friday, 21st Aug at 2:00pm.</li><li>Eligible candidates are B.Tech CSE graduates from 2028.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 18.53s</span>
+                            <span>Processed: 2026-08-21 11:24:58</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #f97316;">
+                    <div class="card-model-name" style="background: #ffedd5; color: #9a3412;">
+                        nvidia/nemotron-3-nano-4b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">American Express Internship Application Deadline</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #ffedd5; color: #9a3412;">Internship</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">Friday, 21st Aug</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">2:00pm</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">VIT, Vellore</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>- Application deadline is Friday, 21st Aug at 2:00pm.</li><li>- Your regno 24BCE0825 is on the shortlist.</li><li>- The application link is https://amex.co1.qualtrics.com/jfe/form/SV_5mviIxtPhmlbPoi.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 12.74s</span>
+                            <span>Processed: 2026-08-21 11:26:05</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #10b981;">
+                    <div class="card-model-name" style="background: #d1fae5; color: #065f46;">
+                        qwen2.5-0.5b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">No Extracted Title</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">2026-08-21</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">2:00pm</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <div class="text-muted italic">No summary bullets provided</div>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 3.04s</span>
+                            <span>Processed: 2026-08-21 11:26:21</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #cbd5e1;">
+                    <div class="card-model-name" style="background: #f1f5f9; color: #475569;">minicpm5-1b</div>
+                    <div class="p-4 italic text-muted">No processing data found for this model.</div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="detail-block">
+            <div class="detail-email-header">
+                <h2>Email #5631: Invitation: University Southern California, USA- Webinar - Careers at
+ the Intersection of GIS, Data Science, and AI | 2nd Sept &#x27;2026 - 7.30 PM IST</h2>
+                <div class="detail-sender">Sender: &quot;&#x27;Dr.R.Seenivasan Director (IR)&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div>
+            </div>
+            <div class="model-cards-grid">
+        
+                <div class="model-card" style="border-top: 4px solid #6366f1;">
+                    <div class="card-model-name" style="background: #e0e7ff; color: #3730a3;">
+                        qwen3.5-9b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Invitation to USC Webinar on GIS, Data Science, and AI Careers</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3;">Talk</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">September 2, 2026</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">7:30 PM IST</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>The University of Southern California Spatial Sciences Institute is hosting a webinar featuring Professor John Wilson.</li><li>The session topic is Careers at the Intersection of GIS, Data Science, and AI.</li><li>Participants will explore how spatial sciences and AI are converging to shape industries worldwide.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 16.80s</span>
+                            <span>Processed: 2026-08-21 11:24:39</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #f97316;">
+                    <div class="card-model-name" style="background: #ffedd5; color: #9a3412;">
+                        nvidia/nemotron-3-nano-4b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">GIS Data Science AI Webinar Invitation</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #ffedd5; color: #9a3412;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">2nd Sept &#x27;2026</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">7.30 PM IST</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">Webinar</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>- Yatharth Tongia with regno 24BCE0825 is on the shortlist.</li><li>- The webinar takes place on Wednesday, September 2, 2026 at 7:30 PM IST.</li><li>- It covers careers at the intersection of GIS, Data Science, and AI.</li><li>- Seats are limited; early registration recommended.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 13.71s</span>
+                            <span>Processed: 2026-08-21 11:25:52</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #10b981;">
+                    <div class="card-model-name" style="background: #d1fae5; color: #065f46;">
+                        qwen2.5-0.5b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">No Extracted Title</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">2026-09-02</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">14:30:00</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>Dear All, Please attend if you are interested. The University of Southern California’s Spatial Sciences Institute is hosting a special webinar featuring Professor John Wilson, Founding Director of the Institute. September 2, 2026 - 7:30 PM IST.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 3.56s</span>
+                            <span>Processed: 2026-08-21 11:26:18</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #cbd5e1;">
+                    <div class="card-model-name" style="background: #f1f5f9; color: #475569;">minicpm5-1b</div>
+                    <div class="p-4 italic text-muted">No processing data found for this model.</div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="detail-block">
+            <div class="detail-email-header">
+                <h2>Email #5630: Security alert</h2>
+                <div class="detail-sender">Sender: Google &lt;no-reply@accounts.google.com&gt;</div>
+            </div>
+            <div class="model-cards-grid">
+        
+                <div class="model-card" style="border-top: 4px solid #6366f1;">
+                    <div class="card-model-name" style="background: #e0e7ff; color: #3730a3;">
+                        qwen3.5-9b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">New Sign-in on Windows Device</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3;">Security Alert</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">Windows device</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>A new sign-in to your Google Account was detected on a Windows device.</li><li>Your account email is yatharth.tongia2024@vitstudent.ac.in.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 13.91s</span>
+                            <span>Processed: 2026-08-21 11:24:22</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #f97316;">
+                    <div class="card-model-name" style="background: #ffedd5; color: #9a3412;">
+                        nvidia/nemotron-3-nano-4b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Google security alert</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #ffedd5; color: #9a3412;">Security Alert</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>A new sign-in to your Google Account on a Windows device was detected.</li><li>If this is not you, Google will help secure your account.</li><li>You can check activity at the provided link.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 12.27s</span>
+                            <span>Processed: 2026-08-21 11:25:38</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #10b981;">
+                    <div class="card-model-name" style="background: #d1fae5; color: #065f46;">
+                        qwen2.5-0.5b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">No Extracted Title</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <div class="text-muted italic">No summary bullets provided</div>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 2.81s</span>
+                            <span>Processed: 2026-08-21 11:26:14</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #cbd5e1;">
+                    <div class="card-model-name" style="background: #f1f5f9; color: #475569;">minicpm5-1b</div>
+                    <div class="p-4 italic text-muted">No processing data found for this model.</div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="detail-block">
+            <div class="detail-email-header">
+                <h2>Email #5629: Day 5: &quot;Beyond the Frame&quot; - Photography Competition</h2>
+                <div class="detail-sender">Sender: &quot;&#x27;Director Student Welfare&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div>
+            </div>
+            <div class="model-cards-grid">
+        
+                <div class="model-card" style="border-top: 4px solid #6366f1;">
+                    <div class="card-model-name" style="background: #e0e7ff; color: #3730a3;">
+                        qwen3.5-9b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Beyond the Frame Photography Competition Day 5</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3;">Workshop</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">21-August-2026</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">06:00 AM to 09:00 PM</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">VIT Campus (Photos must be taken within the campus only)</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>The Photography Club invites participants to capture the VIT campus at night under the theme &#x27;After Dark&#x27;.</li><li>Participants must upload one unique photo per day on their public Instagram page tagged with @photographyclubvit and @sw_vit.</li><li>Winners will be selected based on composition, storytelling ability, and adherence to plagiarism rules regarding AI-generated images.</li><li>A prize of ₹500 is awarded for every day of the contest.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 22.94s</span>
+                            <span>Processed: 2026-08-21 11:24:08</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #f97316;">
+                    <div class="card-model-name" style="background: #ffedd5; color: #9a3412;">
+                        nvidia/nemotron-3-nano-4b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Beyond the Frame Photo Contest</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #ffedd5; color: #9a3412;">Assignment</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">21-August-2026</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">06:00 AM - 09:00 PM</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">Vellore Campus</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>- Your regno 24BCE0825 is on the shortlist.</li><li>- The competition runs from 06:00 AM to 09:00 PM on 21-August-2026 at Vellore Campus.</li><li>- Upload your photo via Instagram tagging @photographyclubvit and @sw_vit, then fill the Google Form.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 13.24s</span>
+                            <span>Processed: 2026-08-21 11:25:26</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #10b981;">
+                    <div class="card-model-name" style="background: #d1fae5; color: #065f46;">
+                        qwen2.5-0.5b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">No Extracted Title</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">2024-08-21</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <div class="text-muted italic">No summary bullets provided</div>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 2.96s</span>
+                            <span>Processed: 2026-08-21 11:26:12</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #cbd5e1;">
+                    <div class="card-model-name" style="background: #f1f5f9; color: #475569;">minicpm5-1b</div>
+                    <div class="p-4 italic text-muted">No processing data found for this model.</div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <div class="detail-block">
+            <div class="detail-email-header">
+                <h2>Email #5628: Fwd: Ecosystem Collaboration: Funding Opportunity for Energy Startups via mc²+ IGNITE</h2>
+                <div class="detail-sender">Sender: &quot;&#x27;Director VIT Innovation&#x27; via B.Tech. - Comp  Sci Engg 2024 Group, Vellore Campus&quot; &lt;24bce@vitstudent.ac.in&gt;</div>
+            </div>
+            <div class="model-cards-grid">
+        
+                <div class="model-card" style="border-top: 4px solid #6366f1;">
+                    <div class="card-model-name" style="background: #e0e7ff; color: #3730a3;">
+                        qwen3.5-9b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Funding Opportunity for Energy Startups via mc²+ IGNITE</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #e0e7ff; color: #3730a3;">Announcement</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">Thu, Aug 20, 2026</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">10:48 AM</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>The mc²+ IGNITE call, India&#x27;s Flagship Energy Innovation Accelerator launched under the Ministry of Petroleum and Natural Gas, is now open.</li><li>Interested students running startups in the energy sector are invited to participate.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 24.18s</span>
+                            <span>Processed: 2026-08-21 11:23:46</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #f97316;">
+                    <div class="card-model-name" style="background: #ffedd5; color: #9a3412;">
+                        nvidia/nemotron-3-nano-4b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">Energy Startup Funding Opportunity</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #ffedd5; color: #9a3412;">Announcement</span>
+                            <span class="badge badge-high">HIGH</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">2026-08-20</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">10:48 AM</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>Your regno 24BCE0825 is on the shortlist.</li><li>Energy startup funding opportunity via mc²+ IGNITE is open.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 15.20s</span>
+                            <span>Processed: 2026-08-21 11:25:13</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #10b981;">
+                    <div class="card-model-name" style="background: #d1fae5; color: #065f46;">
+                        qwen2.5-0.5b
+                    </div>
+                    <div class="card-body">
+                        <div class="card-main-title">No Extracted Title</div>
+                        
+                        <div class="card-badges-row">
+                            <span class="badge" style="background: #d1fae5; color: #065f46;">Other</span>
+                            <span class="badge badge-low">LOW</span>
+                        </div>
+
+                        <div class="fields-table">
+                            <div class="field-item">
+                                <span class="field-label">Date</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Time</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                            <div class="field-item">
+                                <span class="field-label">Location</span>
+                                <span class="field-val">N/A</span>
+                            </div>
+                        </div>
+
+                        <div class="summary-box">
+                            <div class="summary-title">Extracted Summary</div>
+                            <ul class="bullet-list"><li>This email is a forwarded message from Singh Gaurav ( सिंह गौरव ) to Eric B. on August 20, 2026 at 10:48 AM. The subject line is &#x27;Ecosystem Collaboration: Funding Opportunity for Energy Startups via mc²+ IGNITE&#x27;.</li></ul>
+                        </div>
+
+                        <div class="meta-row">
+                            <span>Latency: 3.67s</span>
+                            <span>Processed: 2026-08-21 11:26:09</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="model-card" style="border-top: 4px solid #cbd5e1;">
+                    <div class="card-model-name" style="background: #f1f5f9; color: #475569;">minicpm5-1b</div>
+                    <div class="p-4 italic text-muted">No processing data found for this model.</div>
+                </div>
+                
+            </div>
+        </div>
+        
+        </section>
+
+        <footer>
+            Report generated automatically on 2026-08-21 11:28:54 • Model Comparator pipeline
+        </footer>
+    </div>
+</body>
+</html>

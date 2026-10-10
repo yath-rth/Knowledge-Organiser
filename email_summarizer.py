@@ -14,7 +14,7 @@ load_dotenv()
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 DB_ID = os.getenv("DB_ID")
-LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:1234")
+LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:11434")
 LM_MODEL_NAME = os.getenv("LM_MODEL_NAME")
 FIREBASE_CREDENTIAL_PATH = os.getenv("SERVICE_ACCOUNT_PATH", "service_account.json")
 STUDENT_NAME = os.getenv("STUDENT_NAME")
@@ -125,12 +125,12 @@ def process_attachments(email_item):
                 continue
 
             print(f"    -> Match found in chunk {i + 1}/{total} (matched: '{matched_term}')")
-            context = summarize_excel_match(email_item, filename, chunk_text, matched_term, i, total)
+            #context = summarize_excel_match(email_item, filename, chunk_text, matched_term, i, total)
             findings.append({
                 "filename": filename,
                 "chunk_index": i,
                 "matched_term": matched_term,
-                "context": context,
+                "context": "context",
             })
 
     if not findings:
