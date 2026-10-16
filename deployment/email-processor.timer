@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Email Processor every 15 minutes
+Requires=email-processor.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

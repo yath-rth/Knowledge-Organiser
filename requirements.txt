@@ -1,5 +1,6 @@
 requests
 python-dotenv
-firebase-admin
 pandas
 openpyxl
+flask
+gunicorn

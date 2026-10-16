@@ -2,3 +2,9 @@ _pycache_
 .env
 service_account.json
 *.json
+*.db
+*.db-shm
+*.db-wal
+__pycache__/
+venv/
+nul

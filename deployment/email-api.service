@@ -1,0 +1,19 @@
+[Unit]
+Description=Email Processing API Service
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/knowledge-organiser
+Environment="PATH=/home/ubuntu/knowledge-organiser/venv/bin"
+ExecStart=/home/ubuntu/knowledge-organiser/venv/bin/gunicorn -w 2 -b 0.0.0.0:5000 api:app
+Restart=always
+RestartSec=10
+
+# Logging
+StandardOutput=append:/var/log/email-api.log
+StandardError=append:/var/log/email-api-error.log
+
+[Install]
+WantedBy=multi-user.target

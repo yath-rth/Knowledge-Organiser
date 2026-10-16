@@ -1,0 +1,15 @@
+[Unit]
+Description=Email Processor Service (runs via cron)
+After=network.target ollama.service
+Wants=ollama.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/knowledge-organiser
+Environment="PATH=/home/ubuntu/knowledge-organiser/venv/bin"
+ExecStart=/home/ubuntu/knowledge-organiser/venv/bin/python email_summarizer.py
+
+# Logging
+StandardOutput=append:/var/log/email-processor.log
+StandardError=append:/var/log/email-processor-error.log

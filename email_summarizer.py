@@ -6,19 +6,20 @@ import json
 from datetime import datetime, timedelta
 import re
 from email_reader import get_emails_from_last_24h
-import firebase_admin
-from firebase_admin import credentials, initialize_app, firestore
+from database import EmailDatabase
 
 # Load environment variables
 load_dotenv()
 EMAIL_USER = os.getenv("EMAIL_USER")
 EMAIL_PASS = os.getenv("EMAIL_PASS")
-DB_ID = os.getenv("DB_ID")
+DB_PATH = os.getenv("DB_PATH", "emails.db")
 LM_STUDIO_URL = os.getenv("LM_STUDIO_URL", "http://localhost:11434")
 LM_MODEL_NAME = os.getenv("LM_MODEL_NAME")
-FIREBASE_CREDENTIAL_PATH = os.getenv("SERVICE_ACCOUNT_PATH", "service_account.json")
 STUDENT_NAME = os.getenv("STUDENT_NAME")
 STUDENT_REGNO = os.getenv("STUDENT_REGNO")
+
+# Initialize database
+db = EmailDatabase(DB_PATH)
 
 # ---------------------------------------------------------------------------
 # Priority configuration
@@ -295,7 +296,7 @@ def classify_email(email_item):
             "sender": email_item["sender"],
             "raw_subject": email_item["subject"],
             "raw_body": email_item["body_preview"],
-            "processed_at": firestore.SERVER_TIMESTAMP,
+            "processed_at": datetime.now().isoformat(),
             "model": LM_MODEL_NAME,
         }
 
@@ -349,64 +350,33 @@ def classify_email(email_item):
         update_state("classify_email unexpected error")
         return None
 
-def get_from_firebase(count):
+def get_existing_email_ids(count):
+    """Get list of existing email IDs from database"""
     try:
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
-            initialize_app(cred)
-
-        db = firestore.client()
-
-        docs = (
-            db.collection("emails")
-            .order_by("gmail_id", direction=firestore.Query.DESCENDING)
-            .limit(count)
-            .stream()
-        )
-
-        return [doc.to_dict() for doc in docs]
-
+        return db.get_existing_email_ids(limit=count)
     except Exception as e:
-        print(f"Firebase error: {e}")
-        update_state("get_from_firebase failed")
-        return None
+        print(f"Database error: {e}")
+        update_state("get_existing_email_ids failed")
+        return []
 
-def save_to_firebase(data_list):
-    """Saves the extracted emails to Firebase Firestore"""
+def save_to_database(data_list):
+    """Saves the extracted emails to SQLite database"""
 
     if not data_list:
-        print("No data to save to Firebase.")
+        print("No data to save to database.")
         return False
 
     try:
-        # Initialize Firebase Admin SDK
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
-            initialize_app(cred)
+        print(f"\nSaving {len(data_list)} emails to database...")
 
-        db = firestore.client()
+        saved_count = db.save_emails_batch(data_list)
 
-        print(f"\nSaving {len(data_list)} emails to Firestore...")
-
-        saved_count = 0
-        for i, item in enumerate(data_list):
-            doc_id = item["gmail_id"]
-
-            try:
-                db.collection("emails").document(str(doc_id)).set(item)
-                item_type = item.get("type") or "Unknown"
-                print(f"  Saved: {item_type[:20]}...")
-                saved_count += 1
-            except Exception as e:
-                print(f"  Failed to save doc {doc_id}: {e}")
-                update_state(f"save_to_firebase failed for doc {doc_id}")
-
-        print(f"\nSuccessfully synced {saved_count}/{len(data_list)} emails to Firebase!")
+        print(f"\nSuccessfully saved {saved_count}/{len(data_list)} emails to database!")
         return saved_count > 0
 
     except Exception as e:
-        print(f"\nCRITICAL ERROR connecting to Firebase: {e}")
-        update_state("save_to_firebase critical error")
+        print(f"\nCRITICAL ERROR saving to database: {e}")
+        update_state("save_to_database critical error")
         return False
 
 def chunk_contains_student(chunk_text):
@@ -426,27 +396,11 @@ def chunk_contains_student(chunk_text):
     return None
 
 def update_state(state):
-    timestamp = firestore.SERVER_TIMESTAMP
-
-    item = {
-        "state": state,
-        "timestamp": timestamp
-    }
-
+    """Update system heartbeat state in database"""
     try:
-        if not firebase_admin._apps:
-            cred = credentials.Certificate(FIREBASE_CREDENTIAL_PATH)
-            initialize_app(cred)
-
-        db = firestore.client()
-        doc_id = datetime.now().isoformat()
-        try:
-            db.collection("heart_beat").document(doc_id).set(item)
-        except Exception as e:
-            print(f"Failed to save doc {doc_id}: {e}")
-
+        db.update_heartbeat(state)
     except Exception as e:
-        print(f"\nCRITICAL ERROR connecting to Firebase: {e}")
+        print(f"Failed to update heartbeat: {e}")
 
 
 def main():
@@ -457,15 +411,14 @@ def main():
         update_state("No new emails")
         sys.exit(1)
 
-    # existing_ids = [str(email["gmail_id"]) for email in get_from_firebase(len(emails))]
-    existing_ids = []
+    existing_ids = get_existing_email_ids(len(emails))
     final_output_list = []
     errors_count = 0
 
     for i, email_item in enumerate(emails):
         print(f"\n[{i + 1}/{len(emails)}] Analyzing: {email_item['subject']}")
 
-        if(str(email_item["id"]) in existing_ids):
+        if int(email_item["id"]) in existing_ids:
             print("Email already stored")
             update_state("skipped duplicate email")
             continue
@@ -484,14 +437,14 @@ def main():
     if errors_count:
         print(f"\n{errors_count} email(s) failed to process.")
 
-    # save_success = save_to_firebase(final_output_list)
+    save_success = save_to_database(final_output_list)
 
-    # if not save_success:
-    #     update_state("firebase save failed")
-    # elif errors_count > 0:
-    #     update_state(f"updated with {errors_count} processing errors")
-    # else:
-    #     update_state("successfully updated without errors")
+    if not save_success:
+        update_state("database save failed")
+    elif errors_count > 0:
+        update_state(f"updated with {errors_count} processing errors")
+    else:
+        update_state("successfully updated without errors")
 
 
 
